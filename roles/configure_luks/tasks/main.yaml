@@ -1,0 +1,8 @@
+---
+- name: Attach each CEX device from assignment list
+  vars:
+    cex_list: "{{ env.cex_assignments[target_vm_name] | default([]) }}"
+  include_tasks: attach_cex_device.yaml
+  loop: "{{ cex_list }}"
+  loop_control:
+    loop_var: cex_pair

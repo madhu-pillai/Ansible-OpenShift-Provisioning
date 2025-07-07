@@ -1,0 +1,38 @@
+- name: Load vfio_ap kernel module
+  ansible.builtin.modprobe:
+    name: vfio_ap
+    state: present
+
+- name: Set defaults AP masks
+  ansible.builtin.shell: |
+    echo 0x0 > /sys/bus/ap/apmask
+    echo 0x0 > /sys/bus/ap/aqmask
+  args:
+    executable: /bin/bash
+
+- name: Set short hostname
+  set_fact:
+    short_hostname: "{{ inventory_hostname.split('.')[0] }}"
+
+- name: Set cex_card if assignment exists for host
+  set_fact:
+    cex_card: "{{ env.cex_assignments[short_hostname] }}"
+  when: env.cex_assignments is defined and short_hostname in env.cex_assignments
+
+- name: Debug assigned CEX cards
+  debug:
+    msg: "CEX cards for {{ inventory_hostname }}: {{ cex_card }}"
+  when: cex_card is defined
+
+- name: Create VFIO assignment shell script from template
+  template:
+    src: assign_cards.sh.j2
+    dest: /tmp/assign_cards.sh
+    mode: '0755'
+  when: cex_card is defined  
+
+- name: Run the VFIO assignment shell script
+  shell: /tmp/assign_cards.sh
+  args:
+    executable: /bin/bash
+  when: cex_card is defined
